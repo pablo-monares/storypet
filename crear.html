@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StoryPet — Crear libro</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap"
+    rel="stylesheet">
+
+  <!-- ============================================================
+     STORYPET — GENERADOR DE LIBROS
+     
+     CONFIGURACIÓN: Pega tu API key de Anthropic aquí abajo:
+     1. Ve a console.anthropic.com → API Keys → Create Key
+     2. Reemplaza el texto TU_API_KEY_AQUI con tu key (sk-ant-...)
+     3. Guarda el archivo y súbelo a cPanel como crear.html
+============================================================ -->
+
+  <style>
+    :root {
+      --moss: #2d4a28;
+      --moss-l: #4a6741;
+      --moss-ll: #5c7d52;
+      --gold: #e8b84b;
+      --gold-l: #f5cc6a;
+      --cream: #f5ede0;
+      --coral: #c04820;
+      --ink: #1a1f16;
+      --ink-l: #5a5a56;
+      --ink-xl: #9ca3af;
+      --paper: #fffef8;
+      --line: rgba(46, 110, 122, .12);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--moss);
+      color: #fff;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 20% 20%, rgba(90, 120, 70, .4), transparent),
+        radial-gradient(ellipse 50% 70% at 85% 85%, rgba(25, 38, 18, .7), transparent);
+      pointer-events: none;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: .04;
+      pointer-events: none;
+      mix-blend-mode: overlay;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(45, 74, 40, .85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+    }
+
+    .nav-logo {
+      font-family: 'Clash Display', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--cream);
+      letter-spacing: .01em;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-back {
+      font-size: 13px;
+      color: rgba(255, 255, 255, .5);
+      text-decoration: none;
+      transition: color .2s;
+    }
+
+    .nav-back:hover {
+      color: rgba(255, 255, 255, .9);
+    }
+
+    /* WRAPPER */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 100px 24px 80px;
+    }
+
+    /* SCREENS */
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+      animation: fadeUp .5s ease;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* PROGRESS */
+    .progress {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 36px;
+    }
+
+    .prog-dot {
+      height: 3px;
+      flex: 1;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, .15);
+      transition: background .4s ease;
+    }
+
+    .prog-dot.done {
+      background: var(--gold);
+    }
+
+    .prog-dot.active {
+      background: #fff;
+    }
+
+    /* HEADER DEL PASO */
+    .step-eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-eyebrow::before {
+      content: '';
+      width: 18px;
+      height: 1px;
+      background: var(--gold);
+    }
+
+    .step-title {
+      font-family: 'Clash Display', sans-serif;
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 500;
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: -.01em;
+    }
+
+    .step-title em {
+      font-style: italic;
+      color: var(--gold);
+      font-weight: 300;
+    }
+
+    .step-sub {
+      font-size: 15px;
+      font-weight: 300;
+      color: rgba(255, 255, 255, .6);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    /* FORM ELEMENTS */
+    .field {
+      margin-bottom: 20px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    .field-helper {
+      font-size: 12px;
+      color: rgba(255, 255, 255, .4);
+      margin-bottom: 8px;
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .field-example {
+      font-size: 12px;
+      color: rgba(255, 255, 255, .35);
+      background: rgba(255, 255, 255, .05);
+      border-left: 2px solid rgba(232, 184, 75, .3);
+      padding: 8px 12px;
+      border-radius: 0 4px 4px 0;
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+
+    input[type=text],
+    input[type=email],
+    textarea {
+      width: 100%;
+      padding: 13px 16px;
+      background: rgba(255, 255, 255, .07);
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 4px;
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: all .25s;
+    }
+
+    input[type=text]::placeholder,
+    input[type=email]::placeholder,
+    textarea::placeholder {
+      color: rgba(255, 255, 255, .25);
+    }
+
+    input[type=text]:focus,
+    input[type=email]:focus,
+    textarea:focus {
+      border-color: rgba(255, 255, 255, .4);
+      background: rgba(255, 255, 255, .1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      line-height: 1.65;
+    }
+
+    /* PET TYPE */
+    .pet-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .pet-btn {
+      padding: 12px 8px;
+      text-align: center;
+      background: rgba(255, 255, 255, .07);
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, .6);
+      transition: all .2s;
+    }
+
+    .pet-btn:hover {
+      border-color: rgba(255, 255, 255, .4);
+      color: #fff;
+    }
+
+    .pet-btn.sel {
+      background: rgba(232, 184, 75, .15);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    /* NAV BOTONES */
+    .nav-btns {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 32px;
+      gap: 12px;
+    }
+
+    .btn-back {
+      padding: 12px 22px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, .2);
+      border-radius: 4px;
+      color: rgba(255, 255, 255, .5);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .btn-back:hover {
+      border-color: rgba(255, 255, 255, .5);
+      color: #fff;
+    }
+
+    .btn-next {
+      padding: 13px 28px;
+      background: var(--gold);
+      color: var(--ink);
+      border: none;
+      border-radius: 4px;
+      font-family: 'Clash Display', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      letter-spacing: .03em;
+    }
+
+    .btn-next:hover {
+      background: var(--gold-l);
+      transform: translateY(-1px);
+    }
+
+    .btn-next:disabled {
+      opacity: .4;
+      cursor: default;
+      transform: none;
+    }
+
+    .step-counter {
+      font-size: 12px;
+      color: rgba(255, 255, 255, .3);
+    }
+
+    /* LOADING */
+    .loading-wrap {
+      text-align: center;
+      padding: 60px 0;
+    }
+
+    .loading-title {
+      font-family: 'Clash Display', sans-serif;
+      font-size: 26px;
+      font-weight: 500;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .loading-sub {
+      font-size: 14px;
+      color: rgba(255, 255, 255, .5);
+      margin-bottom: 36px;
+      line-height: 1.6;
+    }
+
+    .dots-wrap {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .3);
+      animation: pulse .9s ease-in-out infinite;
+    }
+
+    .dot:nth-child(2) {
+      animation-delay: .15s;
+    }
+
+    .dot:nth-child(3) {
+      animation-delay: .3s;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: .3;
+      }
+
+      50% {
+        transform: scale(1.4);
+        opacity: 1;
+      }
+    }
+
+    .status-box {
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, .5);
+      text-align: left;
+      line-height: 1.7;
+      min-height: 56px;
+    }
+
+    /* LIBRO */
+    .book-wrap {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Portada */
+    .book-cover {
+      border-radius: 6px 16px 16px 6px;
+      background: linear-gradient(150deg, #3d6035, #1e3319);
+      padding: 48px 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 14px;
+      box-shadow: -5px 0 0 rgba(0, 0, 0, .3), 0 16px 48px rgba(0, 0, 0, .4);
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .book-cover::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 16px;
+      background: linear-gradient(90deg, rgba(0, 0, 0, .35), transparent);
+    }
+
+    .book-cover::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 8px;
+      background: repeating-linear-gradient(0deg, #f0e8d8 0, #f0e8d8 1px, #ddd0c0 1px, #ddd0c0 2px);
+      border-radius: 0 3px 3px 0;
+      opacity: .6;
+    }
+
+    .cover-label {
+      font-size: 10px;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .4);
+      margin-bottom: 20px;
+    }
+
+    .cover-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(44px, 8vw, 72px);
+      font-weight: 400;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .cover-subtitle {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 18px;
+      color: rgba(255, 255, 255, .65);
+      margin-bottom: 24px;
+      line-height: 1.4;
+    }
+
+    .cover-rule {
+      width: 40px;
+      height: 1px;
+      background: rgba(232, 184, 75, .4);
+      margin: 0 auto 18px;
+    }
+
+    .cover-tag {
+      font-size: 10px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, .35);
+    }
+
+    .cover-ornament {
+      position: absolute;
+      bottom: 20px;
+      right: 24px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(232, 184, 75, .3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cover-ornament-inner {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(232, 184, 75, .15);
+    }
+
+    /* Páginas */
+    .book-page {
+      background: var(--paper);
+      border-radius: 3px 8px 8px 3px;
+      padding: 32px 36px 40px;
+      margin-bottom: 10px;
+      position: relative;
+      color: var(--ink);
+      box-shadow: -3px 0 0 rgba(0, 0, 0, .1);
+    }
+
+    .book-page::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 12px;
+      background: linear-gradient(90deg, rgba(0, 0, 0, .06), transparent);
+    }
+
+    .page-chapter {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--ink-xl);
+      margin-bottom: 14px;
+    }
+
+    .page-pull {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 19px;
+      font-style: italic;
+      font-weight: 400;
+      color: var(--moss);
+      line-height: 1.4;
+      border-left: 2px solid rgba(46, 74, 40, .2);
+      padding-left: 16px;
+      margin-bottom: 16px;
+    }
+
+    .page-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 16px;
+      font-style: italic;
+      font-weight: 300;
+      line-height: 1.9;
+      color: var(--ink-l);
+    }
+
+    .page-num {
+      position: absolute;
+      bottom: 16px;
+      right: 22px;
+      font-size: 11px;
+      color: var(--ink-xl);
+      font-style: italic;
+    }
+
+    /* CAPTURA EMAIL */
+    .capture-card {
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+      margin-top: 24px;
+    }
+
+    .capture-title {
+      font-family: 'Clash Display', sans-serif;
+      font-size: 22px;
+      font-weight: 500;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .capture-sub {
+      font-size: 14px;
+      color: rgba(255, 255, 255, .55);
+      line-height: 1.7;
+      margin-bottom: 24px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .capture-row {
+      display: flex;
+      gap: 8px;
+      max-width: 400px;
+      margin: 0 auto 16px;
+    }
+
+    .capture-row input {
+      flex: 1;
+    }
+
+    .capture-btn {
+      padding: 13px 22px;
+      background: var(--gold);
+      color: var(--ink);
+      border: none;
+      border-radius: 4px;
+      font-family: 'Clash Display', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .2s;
+      letter-spacing: .03em;
+    }
+
+    .capture-btn:hover {
+      background: var(--gold-l);
+    }
+
+    .capture-ok {
+      font-size: 13px;
+      color: var(--gold);
+      font-style: italic;
+      display: none;
+      margin-top: 8px;
+    }
+
+    .capture-disclaimer {
+      font-size: 11px;
+      color: rgba(255, 255, 255, .25);
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+
+    /* RESPONSIVE */
+    @media(max-width:600px) {
+      nav {
+        padding: 14px 20px;
+      }
+
+      .wrapper {
+        padding: 80px 16px 60px;
+      }
+
+      .pet-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-btns {
+        flex-wrap: wrap;
+      }
+
+      .capture-row {
+        flex-direction: column;
+      }
+
+      .book-page {
+        padding: 24px 20px 36px;
+      }
+
+      .book-cover {
+        padding: 36px 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">&#x1F90D; StoryPet</a>
+    <a href="/" class="nav-back">&#8592; Volver al inicio</a>
+  </nav>
+
+  <div class="wrapper">
+
+    <!-- PASO 1 -->
+    <div class="screen active" id="s1">
+      <div class="progress">
+        <div class="prog-dot active"></div>
+        <div class="prog-dot"></div>
+        <div class="prog-dot"></div>
+      </div>
+      <div class="step-eyebrow">Tu compañero</div>
+      <h1 class="step-title">Cuéntanos <em>quién fue</em></h1>
+      <p class="step-sub">Lo básico para empezar. Nombrar es el primer acto de honra.</p>
+
+      <div class="field">
+        <span class="field-label">Tipo de compañero</span>
+        <div class="pet-grid">
+          <button class="pet-btn sel" onclick="selPet(this,'perro')">🐕 Perro</button>
+          <button class="pet-btn" onclick="selPet(this,'gato')">🐈 Gato</button>
+          <button class="pet-btn" onclick="selPet(this,'otro')">🐾 Otro</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="petName">Su nombre</label>
+        <input type="text" id="petName" placeholder="Lola, Bambú, Trueno…">
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="petYears">¿Cuánto tiempo estuvieron juntos?</label>
+        <input type="text" id="petYears" placeholder="Ej: 12 años, desde 2010 hasta 2024">
+      </div>
+
+      <div class="nav-btns">
+        <span class="step-counter">Paso 1 de 3</span>
+        <button class="btn-next" onclick="goTo2()">Continuar →</button>
+      </div>
+    </div>
+
+    <!-- PASO 2 -->
+    <div class="screen" id="s2">
+      <div class="progress">
+        <div class="prog-dot done"></div>
+        <div class="prog-dot active"></div>
+        <div class="prog-dot"></div>
+      </div>
+      <div class="step-eyebrow">Las preguntas</div>
+      <h1 class="step-title">Tres preguntas para <em>capturar su esencia</em></h1>
+      <p class="step-sub">No hay respuestas correctas. Solo la tuya. Escribe lo primero que recuerdes.</p>
+
+      <div class="field">
+        <label class="field-label" for="q1">1 · ¿Cómo era estar cerca de él/ella?</label>
+        <p class="field-helper">Sonidos, olores, texturas. Lo que recuerdas con el cuerpo.</p>
+        <p class="field-example">"El sonido de sus uñas en el piso. Su peso exacto cuando saltaba a la cama. Olía a pan
+          tibio."</p>
+        <textarea id="q1" placeholder="Escribe lo primero que recuerdes…"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="q2">2 · ¿Qué hacía solo él/ella?</label>
+        <p class="field-helper">La manía, la rareza, lo que ningún otro hacía igual.</p>
+        <p class="field-example">"Robaba calcetines, pero solo el izquierdo. Los escondía bajo el sofá como un tesoro."
+        </p>
+        <textarea id="q2" placeholder="Esa cosa que hacía y solo él/ella podía hacer…"></textarea>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="q3">3 · ¿Qué se queda contigo?</label>
+        <p class="field-helper">No lo que perdiste — lo que te dejó. Su legado en ti.</p>
+        <p class="field-example">"Aprendí que se puede esperar a alguien con alegría todos los días sin cansarse."</p>
+        <textarea id="q3" placeholder="Lo que llevas hoy gracias a haberlo conocido…"></textarea>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn-back" onclick="show('s1')">← Atrás</button>
+        <span class="step-counter">Paso 2 de 3</span>
+        <button class="btn-next" onclick="goTo3()">Generar libro →</button>
+      </div>
+    </div>
+
+    <!-- PASO 3: CARGANDO -->
+    <div class="screen" id="s3">
+      <div class="loading-wrap">
+        <div class="loading-title">Escribiendo la historia de <span id="loadingName">tu compañero</span>…</div>
+        <p class="loading-sub">Claude está construyendo su libro personal. Tarda unos 30 segundos.</p>
+        <div class="dots-wrap">
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <div class="status-box" id="statusBox">Iniciando generación…</div>
+      </div>
+    </div>
+
+    <!-- PASO 4: LIBRO -->
+    <div class="screen" id="s4">
+      <div class="book-wrap">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <span style="font-size:13px;color:rgba(255,255,255,.4);">El libro de <strong id="bookNameTop"
+              style="color:rgba(255,255,255,.7);">—</strong></span>
+          <span style="font-size:12px;color:rgba(255,255,255,.25);" id="pageIndicator"></span>
+        </div>
+
+        <div class="book-cover">
+          <div class="cover-label">StoryPet · libro digital memorial</div>
+          <div class="cover-name" id="coverName">—</div>
+          <div class="cover-subtitle" id="coverSubtitle">una vida que dejó huella</div>
+          <div class="cover-rule"></div>
+          <div class="cover-tag" id="coverTag">—</div>
+          <div class="cover-ornament">
+            <div class="cover-ornament-inner"></div>
+          </div>
+        </div>
+
+        <div id="pagesContainer"></div>
+
+        <div class="capture-card">
+          <div class="capture-title">Tu libro está listo</div>
+          <p class="capture-sub">Déjanos tu email y te enviamos el PDF en 24-48 horas, completamente gratis.</p>
+          <div class="capture-row">
+            <input type="email" id="captureEmail" placeholder="tu@email.com">
+            <button class="capture-btn" onclick="submitEmail()">Enviarme el PDF</button>
+          </div>
+          <p class="capture-ok" id="captureOk">✓ Listo. Te enviamos el PDF pronto.</p>
+          <p class="capture-disclaimer">Sin spam. Solo el PDF de tu libro.</p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ============================================================
+       CONFIGURACIÓN — REEMPLAZA AQUÍ TU API KEY
+       Ejemplo:     ============================================================ */
+    
+    
+    /* ============================================================
+       LÓGICA DE LA APLICACIÓN — NO MODIFICAR
+    ============================================================ */
+    let petType = 'perro';
+    let fd = {};
+
+    function show(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function selPet(btn, type) {
+      document.querySelectorAll('.pet-btn').forEach(b => b.classList.remove('sel'));
+      btn.classList.add('sel');
+      petType = type;
+    }
+
+    function goTo2() {
+      const name = document.getElementById('petName').value.trim();
+      if (!name) {
+        document.getElementById('petName').focus();
+        document.getElementById('petName').style.borderColor = 'rgba(255,100,80,.6)';
+        setTimeout(() => document.getElementById('petName').style.borderColor = '', 1400);
+        return;
+      }
+      fd.name = name;
+      fd.years = document.getElementById('petYears').value.trim();
+      fd.type = petType;
+      show('s2');
+    }
+
+    function goTo3() {
+      const q1 = document.getElementById('q1').value.trim();
+      const q2 = document.getElementById('q2').value.trim();
+      const q3 = document.getElementById('q3').value.trim();
+      if (!q1 || !q2 || !q3) {
+        alert('Por favor responde las tres preguntas para generar el libro.');
+        return;
+      }
+      if (API_KEY === 'TU_API_KEY_AQUI') {
+        alert('Configura tu API key de Anthropic en el archivo HTML antes de usar esta función.');
+        return;
+      }
+      fd.q1 = q1; fd.q2 = q2; fd.q3 = q3;
+      show('s3');
+      document.getElementById('loadingName').textContent = fd.name;
+      generateBook();
+    }
+
+    async function generateBook() {
+      const status = document.getElementById('statusBox');
+      const prompt = `Eres un escritor especialista en narrativa emocional y duelo por mascotas.
+Escribe el contenido de un libro digital memorial personalizado.
+Sé cálido, poético y concreto. Usa los detalles específicos que te dan. Evita clichés.
+El tono es suave: usa "partió", "ya no está", nunca "murió".
+
+DATOS DE LA MASCOTA:
+- Nombre: ${fd.name}
+- Tipo de animal: ${fd.type}
+- Tiempo juntos: ${fd.years}
+- Cómo era estar cerca: "${fd.q1}"
+- Su manía o gesto único: "${fd.q2}"
+- Lo que dejó / enseñó: "${fd.q3}"
+
+Responde ÚNICAMENTE con un objeto JSON válido (sin markdown, sin backticks, sin explicaciones):
+{
+  "subtitulo": "frase poética de 6-9 palabras que capture su esencia única",
+  "tag": "texto corto tipo: Perro · 12 años juntos",
+  "capitulos": [
+    {
+      "titulo": "título evocador del capítulo (5-7 palabras)",
+      "texto": "párrafo de 70-90 palabras. Tercera persona cálida. Usa los detalles sensoriales específicos dados. Poético pero concreto."
+    },
+    {
+      "titulo": "título sobre su manía única",
+      "texto": "párrafo de 70-90 palabras sobre lo que hacía solo él/ella. Muy específico, casi anecdótico."
+    },
+    {
+      "titulo": "título sobre el vínculo",
+      "texto": "párrafo de 70-90 palabras sobre la relación entre los dos. Cálido, íntimo."
+    },
+    {
+      "titulo": "título sobre el legado",
+      "texto": "párrafo de 70-90 palabras sobre lo que dejó, lo que cambió, lo que se queda. Cierre esperanzador."
+    }
+  ]
+}`;
+
+      try {
+        status.textContent = 'Conectando con Claude…';
+
+        const res = await fetch('claude-proxy.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-5',
+            max_tokens: 1200,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+
+        status.textContent = 'Procesando la historia…';
+        const data = await res.json();
+
+        if (data.error) throw new Error(data.error.message);
+
+        const text = data.content?.[0]?.text || '';
+        const clean = text.replace(/```json|```/g, '').trim();
+        const book = JSON.parse(clean);
+
+        status.textContent = 'Renderizando el libro…';
+        renderBook(book);
+
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message + '. Recarga la página e intenta de nuevo.';
+        console.error(err);
+      }
+    }
+
+    function esc(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function renderBook(book) {
+      document.getElementById('coverName').textContent = fd.name;
+      document.getElementById('coverSubtitle').textContent = book.subtitulo || 'una vida que dejó huella';
+      document.getElementById('coverTag').textContent = book.tag || fd.type;
+      document.getElementById('bookNameTop').textContent = fd.name;
+      document.getElementById('pageIndicator').textContent = book.capitulos.length + ' capítulos';
+
+      const c = document.getElementById('pagesContainer');
+      c.innerHTML = '';
+      book.capitulos.forEach((cap, i) => {
+        const p = document.createElement('div');
+        p.className = 'book-page';
+        p.innerHTML = `
+      <div class="page-chapter">Capítulo ${i + 1}</div>
+      <div class="page-pull">${esc(cap.titulo)}</div>
+      <p class="page-text">${esc(cap.texto)}</p>
+      <div class="page-num">${i + 1}</div>
+    `;
+        c.appendChild(p);
+      });
+
+      show('s4');
+    }
+
+    async function submitEmail() {
+      const email = document.getElementById('captureEmail').value.trim();
+      if (!email || !email.includes('@')) {
+        document.getElementById('captureEmail').focus();
+        return;
+      }
+      try {
+        await fetch('https://formspree.io/f/xkoywkja', {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            mascota: fd.name,
+            tipo: fd.type,
+            tiempo: fd.years,
+            fuente: 'storypet-crear'
+          })
+        });
+      } catch (e) { console.error(e); }
+
+      document.getElementById('captureOk').style.display = 'block';
+      document.querySelector('.capture-btn').textContent = '✓ Enviado';
+      document.querySelector('.capture-btn').disabled = true;
+    }
+  </script>
+
+</body>
+
+</html>
