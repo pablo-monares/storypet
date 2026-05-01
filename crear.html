@@ -949,7 +949,7 @@ Responde ÚNICAMENTE con un objeto JSON válido (sin markdown, sin backticks, si
       try {
         status.textContent = 'Conectando con Claude…';
 
-        const res = await fetch('claude-proxy.php', {
+        const res = await fetch('/api/claude', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
