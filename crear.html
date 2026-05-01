@@ -897,10 +897,7 @@
         alert('Por favor responde las tres preguntas para generar el libro.');
         return;
       }
-      if (API_KEY === 'TU_API_KEY_AQUI') {
-        alert('Configura tu API key de Anthropic en el archivo HTML antes de usar esta función.');
-        return;
-      }
+
       fd.q1 = q1; fd.q2 = q2; fd.q3 = q3;
       show('s3');
       document.getElementById('loadingName').textContent = fd.name;
